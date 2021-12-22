@@ -8,6 +8,16 @@ const app = express()
 app.use(cors())
 app.use(express.static('build'))
 
+//request logger middleware
+const requestLogger = (request, response, next) => {
+    console.log('Method:', request.method)
+    console.log('Path: ', request.path)
+    console.log('Body: ', request.body)
+    console.log('------')
+    next()
+}
+app.use(requestLogger)
+
 let persons = [
     { 
       "id": 1,
@@ -55,27 +65,22 @@ app.get('/api/persons/:id', (request, response) => {
     })
 })
 
-//Delete single phone entry
-app.delete('/api/persons/:id', (request, response) => {
-    const id = Number(request.params.id)
-    persons = persons.filter(person => person.id !== id)
-    response.status(204).end()
+//Delete single phone entry mongoDB method
+app.delete('/api/persons/:id', (request, response, next) => {
+    Person.findByIdAndRemove(request.params.id)
+        .then(result => {
+            response.status(204).end()
+        })
+        .catch(error => next(error))
 })
 
 //Posting to backend server
 app.use(express.json())
-//generate id
-// const generateId = () => {
-//     const newId = persons.length > 0
-//         ? Math.max(...persons.map(p => p.id))
-//         : 0
-//     return newId + 1
-// }
 
 app.post('/api/persons', (request, response) => {
     const person = request.body
     const checkPerson = persons.filter(p => p.name === person.name)
-    console.log(checkPerson)
+   
     if (!person.name || !person.number) {
         return response.status(400).json({
             error: 'Missing Name or Phone number'
@@ -89,7 +94,6 @@ app.post('/api/persons', (request, response) => {
             name: person.name,
             number: person.number,
             date: new Date(),
-            id: generateId()
         })
         personObj.save().then(savePerson => {
             response.json(savePerson)
@@ -99,6 +103,7 @@ app.post('/api/persons', (request, response) => {
     
 })
 
+//Handle request error
 morgan((tokens, req, res) => {
     return [
         tokens.method(req, res),
@@ -108,6 +113,18 @@ morgan((tokens, req, res) => {
         tokens['response-time'](req, res), 'ms'
     ].join('')
 })
+
+//MongoDB database error handler
+const errorHandler = (error, request, response, next) => {
+    console.log(error.message)
+
+    if (error.name === 'CastError') {
+        return response.status(400).send({ error: 'Malfunction id' })
+    }
+    next(error)
+} 
+app.use(errorHandler)
+
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {

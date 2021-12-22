@@ -2,7 +2,7 @@ const mongoose = require('mongoose')
 
 const url = process.env.MONGODB_URL
 
-console.log('Connectint to Person MongoDB URL', url)
+console.log('Connecting to Person MongoDB URL', url)
 
 mongoose.connect(url)
     .then(result => {
