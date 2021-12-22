@@ -1,10 +1,13 @@
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
+require('dotenv').config()
+const Person = require('./models/person')
 
 const app = express()
 app.use(cors())
 app.use(express.static('build'))
+
 let persons = [
     { 
       "id": 1,
@@ -33,7 +36,9 @@ app.get('/', (request, response) => {
 })
 
 app.get('/api/persons', (request, response) => {
-    response.json(persons)
+    Person.find({}).then(persons => {
+        response.json(persons)
+    })
 })
 
 app.get('/info', (request, response) => {
@@ -45,13 +50,9 @@ app.get('/info', (request, response) => {
 
 //fetching single phonebook entry
 app.get('/api/persons/:id', (request, response) => {
-    const id = Number(request.params.id)
-    const person = persons.find(p => p.id === id)
-    if (person) {
+    Person.findById(request.params.id).then(person => {
         response.json(person)
-    } else {
-        response.status(400).end()
-    }
+    })
 })
 
 //Delete single phone entry
@@ -64,12 +65,12 @@ app.delete('/api/persons/:id', (request, response) => {
 //Posting to backend server
 app.use(express.json())
 //generate id
-const generateId = () => {
-    const newId = persons.length > 0
-        ? Math.max(...persons.map(p => p.id))
-        : 0
-    return newId + 1
-}
+// const generateId = () => {
+//     const newId = persons.length > 0
+//         ? Math.max(...persons.map(p => p.id))
+//         : 0
+//     return newId + 1
+// }
 
 app.post('/api/persons', (request, response) => {
     const person = request.body
@@ -84,14 +85,15 @@ app.post('/api/persons', (request, response) => {
             error: "name must be unique"
         })
     } else {
-        const personObj = {
+        const personObj = new Person({
             name: person.name,
             number: person.number,
             date: new Date(),
             id: generateId()
-        }
-        persons = persons.concat(personObj)
-        response.json(personObj)
+        })
+        personObj.save().then(savePerson => {
+            response.json(savePerson)
+        })
     }
 
     
