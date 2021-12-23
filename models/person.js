@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 const uniqueValidator = require('mongoose-unique-validator')
 
-const url = process.env.MONGODB_URL
+const url = process.env.MONGODB_URI
 
 console.log('Connecting to Person MongoDB URL', url)
 
