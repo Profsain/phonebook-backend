@@ -3,6 +3,7 @@ const morgan = require('morgan')
 const cors = require('cors')
 require('dotenv').config()
 const Person = require('./models/person')
+const { response } = require('express')
 
 const app = express()
 app.use(cors())
@@ -77,7 +78,7 @@ app.delete('/api/persons/:id', (request, response, next) => {
 //Posting to backend server
 app.use(express.json())
 
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response, next) => {
     const person = request.body
     const checkPerson = persons.filter(p => p.name === person.name)
    
@@ -95,12 +96,31 @@ app.post('/api/persons', (request, response) => {
             number: person.number,
             date: new Date(),
         })
-        personObj.save().then(savePerson => {
-            response.json(savePerson)
-        })
+        personObj
+            .save()
+            .then(savePerson => savePerson.toJSON())
+            .then(savedAndFormatedPerson => {
+            response.json(savedAndFormatedPerson)
+            })
+            .catch(error => next(error))
+        
+    }
+})
+
+//updating number in the mongoDB database
+app.put('/api/persons/:id', (request, response, next) => {
+    const body = request.body
+
+    const person = {
+        name: body.name,
+        number: body.number
     }
 
-    
+    Person.findByIdAndUpdate(request.params.id, person, { new: true })
+        .then(updatedPerson => {
+        response.json(updatedPerson)
+        })
+        .catch(error => next(error))
 })
 
 //Handle request error
@@ -120,6 +140,8 @@ const errorHandler = (error, request, response, next) => {
 
     if (error.name === 'CastError') {
         return response.status(400).send({ error: 'Malfunction id' })
+    } else if (error.name === 'ValidationError') {
+        return response.status(400).json({error: error.message})
     }
     next(error)
 } 

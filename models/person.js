@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const uniqueValidator = require('mongoose-unique-validator')
 
 const url = process.env.MONGODB_URL
 
@@ -14,10 +15,23 @@ mongoose.connect(url)
 
 //create database schema
 const personSchema = new mongoose.Schema({
-    name: String,
-    number: String,
-    data: Date,
+    name: {
+        type: String,
+        required: true, 
+        unique: true,
+        minlength: 3,
+    },
+    number: {
+        type: String,
+        required: true,
+        minlength: 8,
+    },
+    data: {
+        type: Date
+    },
 })
+
+personSchema.plugin(uniqueValidator)
 
 //format the response id
 personSchema.set('toJSON', {
